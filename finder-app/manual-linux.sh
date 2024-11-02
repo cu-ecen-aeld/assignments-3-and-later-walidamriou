@@ -183,10 +183,10 @@ echo "----------------------------------------------------------"
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
-# cp finder-app/finder.sh "${OUTDIR}/rootfs/home/"  # Copy finder-app/finder.sh to home
-cp conf/username.txt "${OUTDIR}/rootfs/home/"  # Copy conf/username.txt to home
-cp conf/assignment.txt "${OUTDIR}/rootfs/home/"  # Copy conf/username.txt to home
-cp conf/username.txt "${OUTDIR}/rootfs/home/"  # Copy conf/username.txt to home
+# cp finder-app/finder.sh "${OUTDIR}/rootfs/home/"  # Copy finder-app/finder.sh to home 
+cp conf/username.txt "${OUTDIR}/rootfs/home/conf/"  # Copy conf/username.txt to home
+cp conf/assignment.txt "${OUTDIR}/rootfs/home/conf/"  # Copy conf/username.txt to home
+cp conf/username.txt "${OUTDIR}/rootfs/home/conf/"  # Copy conf/username.txt to home
 cp finder-app/* "${OUTDIR}/rootfs/home/"  # Copy finder-app/finder.sh to home
 
 echo "----------------------------------------------------------"
