@@ -300,7 +300,16 @@ fi
 # cp ./conf/assignment.txt "${OUTDIR}/rootfs/home/conf/"
 
 # Copy all files to the home directory, if this is your intention
-cp -r * "${OUTDIR}/rootfs/home/"
+# cp -r * "${OUTDIR}/rootfs/home/"
+if cp -r ./* "${OUTDIR}/rootfs/home/"; then
+    echo "Files copied to ${OUTDIR}/rootfs/home/"
+else
+    echo "Failed to copy files to ${OUTDIR}/rootfs/home/"
+fi
+
+# Verify the files in the home directory
+echo "Check the contents of the home directory after copying:"
+ls -l "${OUTDIR}/rootfs/home/"
 
 echo "----------------------------------------------------------"
 echo "Chown the root directory"
