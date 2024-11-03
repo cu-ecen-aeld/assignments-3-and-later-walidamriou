@@ -2,178 +2,247 @@
 # Script outline to install and build kernel.
 # Author: Siddhant Jajoo.
 
+echo "********************************************************************"
+echo "************ Script outline to install and build kernel ************"
+echo "********************************************************************"
+
+echo "----------------------------------------------------------"
+echo "Save the current directory"
+echo "----------------------------------------------------------"
+original_dir=$(pwd)
+echo "$original_dir"
+
+echo "----------------------------------------------------------"
+echo "initializations ... "
+echo "----------------------------------------------------------"
 set -e # Causes the script to exit immediately if any command fails (returns a non-zero exit status)
 set -u # Exits the script if you try to use an undefined variable
 
-# # Update package list
-# sudo apt-get update
-
-# # Set non-interactive frontend and timezone
-# export DEBIAN_FRONTEND="noninteractive"
-# export TZ="America/Denver"
-
-# # Install Assignment 1 requirements
-# sudo apt-get install -y --no-install-recommends \
-#     ruby cmake git build-essential bsdmainutils valgrind sudo wget
-
-# # Install additional packages for Assignment 3 kernel build
-# sudo apt-get install -y --no-install-recommends \
-#     bc u-boot-tools kmod cpio flex bison libssl-dev psmisc
-
-# # Choose netcat implementation
-# sudo apt-get install -y netcat-openbsd  # or netcat-traditional
-
-# # Enable universe repository for qemu
-# sudo add-apt-repository universe
-# sudo apt-get update
-
-# # Install qemu-system-arm
-# sudo apt-get install -y qemu-system-arm
-
-# # Install additional packages for Assignment 4 Buildroot
-# sudo apt-get install -y apt-utils tzdata sudo dialog build-essential \
-#     sed make binutils bash patch gzip bzip2 perl tar cpio unzip rsync file \
-#     bc wget python3 libncurses5-dev git openssh-client expect sshpass \
-#     psmisc iputils-ping
-
-# # Reinstall ca-certificates and update
-# sudo apt-get install --reinstall -y ca-certificates
-# sudo update-ca-certificates
-
-# # Install netcat again if needed
-# sudo apt-get install -y netcat-openbsd  # or netcat-traditional
-
+echo "----------------------------------------------------------"
+echo "Set Configs ... "
+echo "----------------------------------------------------------"
 OUTDIR=/tmp/aeld
 KERNEL_REPO=git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 KERNEL_VERSION=v5.15.163
-# BUSYBOX_VERSION=1_33_1
-BUSYBOX_VERSION=1_37_0
+BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
+ROOTFSDIR=${OUTDIR}/rootfs
+BUSYBOXBINARY_DIR="${ROOTFSDIR}/bin/busybox"
 
-# lets the user choose where to save output files. If they don’t specify a location, the script uses a default one
-if [ $# -lt 1 ] # This checks if the number of arguments ($#) is less 1
-then
+echo "----------------------------------------------------------"
+echo "Check output directory ... "
+echo "----------------------------------------------------------"
+if [ $# -lt 1 ]; then
 	echo "Using default directory ${OUTDIR} for output"
 else
 	OUTDIR=$1
 	echo "Using passed directory ${OUTDIR} for output"
 fi
 
-mkdir -p ${OUTDIR} # creates a directory
-cd "$OUTDIR" # move to it
+echo "----------------------------------------------------------"
+echo "Check workspace directory ... "
+echo "----------------------------------------------------------"
+if [ ! -d "${OUTDIR}/" ]; then
+    echo "Not exist, create directory ... "
+	mkdir -p ${OUTDIR} 
+fi
 
-# checks if the directory ${OUTDIR}/linux-stable does not exist
-if [ ! -d "${OUTDIR}/linux-stable" ]; then # The ! -d tests for the absence of a directory
-    #Clone only if the repository does not exist.
+echo "move to it ... "
+cd "$OUTDIR"
+
+echo "----------------------------------------------------------"
+echo "Linux Kernel"
+echo "----------------------------------------------------------"
+if [ ! -d "${OUTDIR}/linux-stable" ]; then
 	echo "CLONING GIT LINUX STABLE VERSION ${KERNEL_VERSION} IN ${OUTDIR}"
 	git clone ${KERNEL_REPO} --depth 1 --single-branch --branch ${KERNEL_VERSION}
-fi # end of if
+fi
 
-# checks if the file ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image does not exist
-if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then # The ! -e tests for the absence of a file
+if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     cd linux-stable
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout ${KERNEL_VERSION}
 
-    # TODO: Add your kernel build steps here
-
     # Configure the kernel
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig  # Use the default config
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
 
     # Build the kernel
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc)  # Adjust for number of cores to run jobs parallel
-
-    # Optionally, build modules
-    # make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules -j$(nproc)
-
-    # Install modules
-    # make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules_install INSTALL_PATH=${OUTDIR}/linux-stable/rootfs/
-
-fi # end of if
-
-echo "----------------------------------------------------------"
-echo "Adding the Image in outdir"
-echo "----------------------------------------------------------"
-
-echo "----------------------------------------------------------"
-echo "Creating the staging directory for the root filesystem"
-echo "----------------------------------------------------------"
-
-cd "$OUTDIR"
-
-# checks if the directory ${OUTDIR}/rootfs does not exist
-if [ -d "${OUTDIR}/rootfs" ]
-then
-    # if ${OUTDIR}/rootfs exist
-	echo "Deleting rootfs directory at ${OUTDIR}/rootfs and starting over"
-    sudo rm  -rf ${OUTDIR}/rootfs
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc)
 fi
 
-# TODO: Create necessary base directories
+echo "----------------------------------------------------------"
+echo "Adding the Kernel Image to ${OUTDIR}"
+echo "----------------------------------------------------------"
+cp "${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image" "${OUTDIR}"
+
+echo "----------------------------------------------------------"
+echo "Root filesystem ... "
+echo "----------------------------------------------------------"
+cd "$OUTDIR"
+
+if [ -d "${ROOTFSDIR}" ]; then
+    echo "Deleting rootfs directory at ${OUTDIR}/rootfs and starting over"
+    sudo rm -rf ${ROOTFSDIR}
+fi
+
 echo "----------------------------------------------------------"
 echo "Create necessary base directories"
 echo "----------------------------------------------------------"
+mkdir -p "${ROOTFSDIR}/"{bin,dev,etc,home,lib,lib64,proc,sbin,sys,tmp,usr,var,usr/{bin,lib,sbin},var/log}
+echo "- Base directories have been created."
 
-mkdir -p "${OUTDIR}/rootfs/bin"   # Directory for executable binaries
-mkdir -p "${OUTDIR}/rootfs/etc"   # Directory for configuration files
-mkdir -p "${OUTDIR}/rootfs/proc"  # Pseudo-filesystem for process information (used by the kernel)
-mkdir -p "${OUTDIR}/rootfs/sys"   # Pseudo-filesystem for system information
-mkdir -p "${OUTDIR}/rootfs/dev"   # Directory for device files
-mkdir -p "${OUTDIR}/rootfs/lib"   # Directory for libraries 
-mkdir -p "${OUTDIR}/rootfs/home"  # Directory for home 
-
+echo "move to $OUTDIR"
 cd "$OUTDIR"
 
 echo "----------------------------------------------------------"
 echo "busybox"
 echo "----------------------------------------------------------"
-sudo rm  -rf ${OUTDIR}/busybox
-
-# checks if the directory ${OUTDIR}/busybox does not exist
-if [ ! -d "${OUTDIR}/busybox" ]
-then
-git clone git://busybox.net/busybox.git
+if [ ! -d "${OUTDIR}/busybox" ]; then
+    echo "clone busybox ... "
+    git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
-    # TODO:  Configure busybox
-    make defconfig  # Use the default configuration for BusyBox
+    echo "config busybox ... "
+    make defconfig
 else
+    echo "move to /busybox ... "
     cd busybox
+    make distclean
+    make defconfig
 fi
 
-# TODO: Make and install busybox
-make clean
-make CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc)  # Build BusyBox
-make CROSS_COMPILE=${CROSS_COMPILE} install     # Install BusyBox to the specified locations
+echo "CONFIG_STATIC=y" >> .config
+echo "CONFIG_USE_BUNDLED_LIBC=y" >> .config
+echo "CONFIG_FEATURE_INIT=y" >> .config
 
+make CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc)
+make CROSS_COMPILE=${CROSS_COMPILE} install
+echo "building process of Busybox done."
+
+echo "Cleaning up existing symbolic links in /rootfs/bin..."
+rm -f ${OUTDIR}/rootfs/bin/*
+
+echo "Copy busybox (bin, sbin, usr) to the rootfs .."
+cp -av ${OUTDIR}/busybox/_install/* ${OUTDIR}/rootfs/
+
+echo "Make /rootfs/bin/sh tool executable.."
+chmod +x "${OUTDIR}/rootfs/bin/sh"
+
+echo "Creating symbolic links for BusyBox utilities..."
+for tool in $(ls ${OUTDIR}/rootfs/bin); do
+    if [ "$tool" != "busybox" ]; then
+        ln -sf busybox "${OUTDIR}/rootfs/bin/$tool"
+    fi
+done
+
+echo "Check symbolic links of BusyBox utilities..."
+ls -l ${OUTDIR}/rootfs/bin
+
+echo "Making all tools in /rootfs/bin executable..."
+for tool in $(ls ${OUTDIR}/rootfs/bin); do
+    chmod +x "${OUTDIR}/rootfs/bin/$tool"
+done
+
+echo "----------------------------------------------------------"
+echo "init script"
+echo "----------------------------------------------------------"
+echo "Create the init script..."
+cat << 'EOF' > "${OUTDIR}/rootfs/bin/init"
+#!/bin/sh
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+mount -o remount,rw /
+
+echo "\n----------------------------------------------------------"
+echo "\n BelinOS by Walid \n"
+echo "----------------------------------------------------------\n"
+
+# Start a shell or your main application
+exec /bin/sh
+EOF
+
+echo "Make the init script executable..."
+chmod +x "${OUTDIR}/rootfs/bin/init"
 
 echo "----------------------------------------------------------"
 echo "Library dependencies"
 echo "----------------------------------------------------------"
+echo "Installing busybox dependencies in /lib/ and /lib64/"
+echo "Creating GCC SYSROOT ... "
+GCCSYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
 
-# ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
-# ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
+echo "Extracting Interpreter ... "
+INTERPRETER=$(${CROSS_COMPILE}readelf -a ${BUSYBOXBINARY_DIR} | grep "program interpreter" | sed 's|.*program interpreter: \(/.*\)].*|\1|')
 
-# TODO: Add library dependencies to rootfs
-# Assuming we need to install the shared libraries
-# Copy necessary libraries (replace libname with actual libraries found)
-# cp ${CROSS_COMPILE}libc.so.6 "${OUTDIR}/rootfs/lib/"  #  library
-# cp ${CROSS_COMPILE}libm.so.6 "${OUTDIR}/rootfs/lib/"  #  librar
+# Ensure the target directory for the interpreter exists
+INTERPRETER_DIR=$(dirname "${ROOTFSDIR}/${INTERPRETER}")
+mkdir -p "${INTERPRETER_DIR}"
+
+echo "Copying ${GCCSYSROOT}/${INTERPRETER} to ${ROOTFSDIR}/${INTERPRETER} ..."
+if cp "${GCCSYSROOT}/${INTERPRETER}" "${ROOTFSDIR}/${INTERPRETER}"; then
+    echo "Successfully copied interpreter to ${ROOTFSDIR}/${INTERPRETER}"
+else
+    echo "Failed to copy interpreter from ${GCCSYSROOT}/${INTERPRETER} to ${ROOTFSDIR}/${INTERPRETER}"
+fi
+
+echo "Creating SHAREDLIBS_DIR ... "
+SHAREDLIBS=$(${CROSS_COMPILE}readelf -a ${BUSYBOXBINARY_DIR} | grep "Shared library" | sed 's|.*Shared library: \[\(.*\)].*|\1|')
+
+# Check if SHAREDLIBS is empty
+if [ -z "$SHAREDLIBS" ]; then
+    echo "No shared libraries found."
+else
+    # Ensure the lib64 directory exists
+    mkdir -p "${ROOTFSDIR}/lib64"
+
+    # Loop through shared libraries and copy them
+    echo "Copying shared libraries..."
+    echo "$SHAREDLIBS" | while IFS= read -r lib; do
+        echo "Copying from ${GCCSYSROOT}/lib64/${lib} to ${ROOTFSDIR}/lib64/ ..."
+        if cp "${GCCSYSROOT}/lib64/${lib}" "${ROOTFSDIR}/lib64/"; then
+            echo "Successfully copied shared library ${lib} to ${ROOTFSDIR}/lib64/"
+        else
+            echo "Failed to copy shared library from ${GCCSYSROOT}/lib64/${lib}"
+        fi
+    done
+fi
+
+# Optional: Print contents of lib and lib64
+# cd ${ROOTFSDIR}
+# print_content lib/ lib64/
+
 
 echo "----------------------------------------------------------"
 echo "Make device nodes"
 echo "----------------------------------------------------------"
-# TODO: Make device nodes
-# Create necessary device nodes in /dev
-sudo mknod "${OUTDIR}/rootfs/dev/null" c 1 3  # Null device
-sudo mknod "${OUTDIR}/rootfs/dev/tty" c 5 0   # Terminal device
+# Ensure the dev directory exists
+mkdir -p dev
+
+# Create device nodes in the dev directory
+if sudo mknod "dev/null" c 1 3; then
+    echo "Created device node /dev/null"
+else
+    echo "Failed to create device node /dev/null"
+fi
+
+if sudo mknod "dev/console" c 5 1; then
+    echo "Created device node /dev/console"
+else
+    echo "Failed to create device node /dev/console"
+fi
+
+# sudo mknod "${OUTDIR}/rootfs/dev/mem" c 1 1
+# sudo mknod "${OUTDIR}/rootfs/dev/null" c 1 3
+# sudo mknod "${OUTDIR}/rootfs/dev/ttyS1" c 5 0
+# sudo mknod "${OUTDIR}/rootfs/dev/console" c 5 1
+# sudo mknod "${OUTDIR}/rootfs/dev/tty0" c 204 64
 
 echo "----------------------------------------------------------"
 echo "Clean and build the writer utility"
 echo "----------------------------------------------------------"
-# TODO: Clean and build the writer utility
+cd "$original_dir" || exit
 make clean
 make
 
@@ -181,29 +250,37 @@ echo "----------------------------------------------------------"
 echo "Copy the scripts and executables to the /home directory"
 echo "----------------------------------------------------------"
 
-# TODO: Copy the finder related scripts and executables to the /home directory
-# on the target rootfs
-# cp finder-app/finder.sh "${OUTDIR}/rootfs/home/"  # Copy finder-app/finder.sh to home 
-cp conf/username.txt "${OUTDIR}/rootfs/home/conf/"  # Copy conf/username.txt to home
-cp conf/assignment.txt "${OUTDIR}/rootfs/home/conf/"  # Copy conf/username.txt to home
-cp conf/username.txt "${OUTDIR}/rootfs/home/conf/"  # Copy conf/username.txt to home
-cp finder-app/* "${OUTDIR}/rootfs/home/"  # Copy finder-app/finder.sh to home
+# Ensure the home directory exists
+if [ ! -d "${OUTDIR}/rootfs/home/" ]; then
+    echo "Creating home directory at ${OUTDIR}/rootfs/home/"
+    mkdir -p "${OUTDIR}/rootfs/home/"
+fi
+
+# Copy specific files to the home directory
+cp ./conf/username.txt "${OUTDIR}/rootfs/home/"
+cp ./conf/assignment.txt "${OUTDIR}/rootfs/home/"
+
+# Copy all files to the home directory, if this is your intention
+cp -r * "${OUTDIR}/rootfs/home/"
 
 echo "----------------------------------------------------------"
 echo "Chown the root directory"
 echo "----------------------------------------------------------"
-# TODO: Chown the root directory
-chown -R root:root "${OUTDIR}/rootfs/"  # Change ownership to root
+cd ${ROOTFSDIR}
+sudo chown -R root:root *
+
+echo "----------------------------------------------------------"
+echo "Create initramfs.cpio"
+echo "----------------------------------------------------------"
+find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 
 echo "----------------------------------------------------------"
 echo "Create initramfs.cpio.gz"
 echo "----------------------------------------------------------"
-
-# TODO: Create initramfs.cpio.gz
-cd "${OUTDIR}/rootfs"  # Navigate to rootfs
-find . | cpio -H newc -o | gzip > "${OUTDIR}/initramfs.cpio.gz"  # Create the initramfs
+cd ${OUTDIR}
+gzip -f initramfs.cpio
 
 echo "----------------------------------------------------------"
 echo "Done"
 echo "----------------------------------------------------------"
-
+# ls -l ${OUTDIR}/rootfs/bin
