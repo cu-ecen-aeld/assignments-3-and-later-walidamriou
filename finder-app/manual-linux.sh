@@ -295,6 +295,7 @@ if [ ! -d "${OUTDIR}/rootfs/home/" ]; then
 fi
 
 # Copy specific files to the home directory
+mkdir -p "${OUTDIR}/rootfs/home/conf/"
 cp ./conf/username.txt "${OUTDIR}/rootfs/home/conf/"
 cp ./conf/assignment.txt "${OUTDIR}/rootfs/home/conf/"
 
