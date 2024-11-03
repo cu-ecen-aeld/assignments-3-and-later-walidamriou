@@ -6,6 +6,41 @@ echo "********************************************************************"
 echo "************ Script outline to install and build kernel ************"
 echo "********************************************************************"
 
+
+# Function to check if a package is installed
+is_installed() {
+    dpkg -l | grep -q "$1"
+}
+
+# Name of the compiler
+COMPILER="aarch64-none-linux-gnu-gcc"
+
+# Check if the compiler is installed
+if command -v $COMPILER &> /dev/null; then
+    echo "$COMPILER is already installed."
+else
+    echo "$COMPILER is not installed. Installing..."
+
+    # Update package list
+    sudo apt-get update
+
+    # Install the compiler
+    if is_installed "gcc-aarch64-linux-gnu"; then
+        echo "$COMPILER is already installed via package."
+    else
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+
+        # Verify installation
+        if command -v $COMPILER &> /dev/null; then
+            echo "$COMPILER installed successfully."
+        else
+            echo "Failed to install $COMPILER."
+            exit 1
+        fi
+    fi
+fi
+
+
 echo "----------------------------------------------------------"
 echo "Save the current directory"
 echo "----------------------------------------------------------"
@@ -101,7 +136,8 @@ echo "busybox"
 echo "----------------------------------------------------------"
 if [ ! -d "${OUTDIR}/busybox" ]; then
     echo "clone busybox ... "
-    git clone git://busybox.net/busybox.git
+    # git clone git://busybox.net/busybox.git
+    git clone https://git.busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     echo "config busybox ... "
