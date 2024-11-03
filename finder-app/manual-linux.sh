@@ -54,9 +54,20 @@ set -e # Causes the script to exit immediately if any command fails (returns a n
 set -u # Exits the script if you try to use an undefined variable
 
 echo "----------------------------------------------------------"
+echo "Check output directory ... "
+echo "----------------------------------------------------------"
+if [ $# -lt 1 ]; then
+    OUTDIR=/tmp/aeld
+	echo "Using default directory ${OUTDIR} for output"
+else
+	OUTDIR=$1
+	echo "Using passed directory ${OUTDIR} for output"
+fi
+
+echo "----------------------------------------------------------"
 echo "Set Configs ... "
 echo "----------------------------------------------------------"
-OUTDIR=/tmp/aeld
+
 KERNEL_REPO=git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 KERNEL_VERSION=v5.15.163
 BUSYBOX_VERSION=1_33_1
@@ -65,16 +76,6 @@ ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
 ROOTFSDIR=${OUTDIR}/rootfs
 BUSYBOXBINARY_DIR="${ROOTFSDIR}/bin/busybox"
-
-echo "----------------------------------------------------------"
-echo "Check output directory ... "
-echo "----------------------------------------------------------"
-if [ $# -lt 1 ]; then
-	echo "Using default directory ${OUTDIR} for output"
-else
-	OUTDIR=$1
-	echo "Using passed directory ${OUTDIR} for output"
-fi
 
 echo "----------------------------------------------------------"
 echo "Check workspace directory ... "
@@ -125,6 +126,7 @@ fi
 echo "----------------------------------------------------------"
 echo "Create necessary base directories"
 echo "----------------------------------------------------------"
+mkdir -p "${ROOTFSDIR}"
 mkdir -p "${ROOTFSDIR}/"{bin,dev,etc,home,lib,lib64,proc,sbin,sys,tmp,usr,var,usr/{bin,lib,sbin},var/log}
 echo "- Base directories have been created."
 
