@@ -282,7 +282,25 @@ echo "Clean and build the writer utility"
 echo "----------------------------------------------------------"
 cd "$original_dir" || exit
 make clean
-make
+make CROSS_COMPILE=aarch64-none-linux-gnu-
+# Check if the build was successful
+if [ $? -eq 0 ]; then
+    echo "Build writer app completed successfully!"
+else
+    echo "Build writer app failed!"
+    exit 1
+fi
+
+# Ensure the output is executable
+chmod +x writer
+
+# Verify that the 'writer' file is executable
+if [ -x writer ]; then
+    echo "The 'writer' executable is now ready and executable."
+else
+    echo "Failed to make 'writer' executable."
+    exit 1
+fi
 
 echo "----------------------------------------------------------"
 echo "Copy the scripts and executables to the /home directory"
@@ -301,10 +319,26 @@ fi
 
 # Copy all files to the home directory, if this is your intention
 # cp -r * "${OUTDIR}/rootfs/home/"
-if cp -r ./* "${OUTDIR}/rootfs/home/"; then
+
+# Ensure the conf directory exists
+if [ ! -d "${OUTDIR}/rootfs/home/conf" ]; then
+    echo "Creating home directory at ${OUTDIR}/rootfs/home/conf"
+    mkdir -p "${OUTDIR}/rootfs/home/conf"
+fi
+
+
+# Copy only files (excluding directories) to the conf directory
+if find . -maxdepth 1 -type f -exec cp {} "${OUTDIR}/rootfs/home/" \;; then
     echo "Files copied to ${OUTDIR}/rootfs/home/"
 else
     echo "Failed to copy files to ${OUTDIR}/rootfs/home/"
+fi
+
+# Copy contents of the current conf directory to the new conf directory
+if cp -r ./conf/* "${OUTDIR}/rootfs/home/conf/"; then
+    echo "Files copied to ${OUTDIR}/rootfs/home/conf/"
+else
+    echo "Failed to copy files to ${OUTDIR}/rootfs/home/conf/"
 fi
 
 # Verify the files in the home directory
