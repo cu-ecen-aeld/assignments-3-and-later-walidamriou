@@ -341,6 +341,13 @@ else
     echo "Failed to copy files to ${OUTDIR}/rootfs/home/conf/"
 fi
 
+# Copy contents of the current conf directory to home
+if cp -r ./conf/* "${OUTDIR}/rootfs/home/"; then
+    echo "Files copied to ${OUTDIR}/rootfs/home/"
+else
+    echo "Failed to copy files to ${OUTDIR}/rootfs/home/"
+fi
+
 # Verify the files in the home directory
 echo "Check the contents of the home directory after copying:"
 ls -l "${OUTDIR}/rootfs/home/"
