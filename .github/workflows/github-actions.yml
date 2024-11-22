@@ -13,9 +13,11 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2 
+        uses: actions/checkout@v3  # Use the latest version
         with:
-          submodules: recursive  # Ensures that submodules are initialized and updated
+          submodules: recursive  # Ensures submodules are initialized and updated
+          fetch-depth: 0  # Fetch full history for submodules
+
       - name: Run unit test
         run: ./unit-test.sh
 
@@ -24,8 +26,10 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2 
+        uses: actions/checkout@v3  # Use the latest version
         with:
-          submodules: recursive  # Ensures that submodules are initialized and updated
+          submodules: recursive  # Ensures submodules are initialized and updated
+          fetch-depth: 0  # Fetch full history for submodules
+
       - name: Run full test
         run: ./full-test.sh
