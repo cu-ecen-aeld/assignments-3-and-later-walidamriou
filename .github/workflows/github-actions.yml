@@ -10,22 +10,17 @@ jobs:
         container: cuaesd/aesd-autotest:24-unit-test
         runs-on: self-hosted
         steps:
-          - name: Checkout repository and submodules
-            uses: actions/checkout@v2
-            with:
-              submodules: recursive    # Ensure recursive fetching of submodules
-              fetch-depth: 0           # Ensure full history is fetched to avoid missing commits
+          - uses: actions/checkout@v2
+          - name: Checkout submodules
+            run : git submodule update --init --recursive
           - name: Run unit test
             run: ./unit-test.sh
-
     full-test:
         container: cuaesd/aesd-autotest:24-assignment5
         runs-on: self-hosted
         steps:
-          - name: Checkout repository and submodules
-            uses: actions/checkout@v2
-            with:
-              submodules: recursive    # Ensure recursive fetching of submodules
-              fetch-depth: 0           # Ensure full history is fetched to avoid missing commits
+          - uses: actions/checkout@v2
+          - name: Checkout submodules
+            run : git submodule update --init --recursive
           - name: Run full test
             run: ./full-test.sh
