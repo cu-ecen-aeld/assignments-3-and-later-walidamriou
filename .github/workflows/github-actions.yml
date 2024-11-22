@@ -1,55 +1,26 @@
 name: assignment-test
 on:
-  push:
-    tags-ignore:
-      - '*'
-    branches:
-      - '*'
+    push:
+        tags-ignore:
+            - '*'
+        branches:
+            - '*'
 jobs:
-  unit-test:
-    container: cuaesd/aesd-autotest:unit-test
-    runs-on: self-hosted
-    steps:
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive  # Ensures all submodules are checked out
-          fetch-depth: 0         # Fetches the full history to resolve specific commits
-          token: ${{ secrets.GITHUB_TOKEN }} # Use token for private submodules if needed
-          
-      - name: Cleanup submodule cache
-        run: |
-          git submodule deinit --all --force
-          rm -rf .git/modules
-      
-      - name: Sync and initialize submodules
-        run: |
-          git submodule sync --recursive                  # Synchronize URLs in .gitmodules with working tree
-          git submodule update --init --recursive --force # Force reinitialization for accuracy
-      
-      - name: Run unit test
-        run: ./unit-test.sh
-
-  full-test:
-    container: cuaesd/aesd-autotest:assignment5
-    runs-on: self-hosted
-    steps:
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive  # Ensures all submodules are checked out
-          fetch-depth: 0         # Fetches the full history to resolve specific commits
-          token: ${{ secrets.GITHUB_TOKEN }} # Use token for private submodules if needed
-          
-      - name: Cleanup submodule cache
-        run: |
-          git submodule deinit --all --force
-          rm -rf .git/modules
-      
-      - name: Sync and initialize submodules
-        run: |
-          git submodule sync --recursive                  # Synchronize URLs in .gitmodules with working tree
-          git submodule update --init --recursive --force # Force reinitialization for accuracy
-      
-      - name: Run full test
-        run: ./full-test.sh
+    unit-test:
+        container: cuaesd/aesd-autotest:24-unit-test
+        runs-on: self-hosted
+        steps:
+          - uses: actions/checkout@v2
+          - name: Checkout submodules
+            run : git submodule update --init --recursive
+          - name: Run unit test
+            run: ./unit-test.sh
+    full-test:
+        container: cuaesd/aesd-autotest:24-assignment5
+        runs-on: self-hosted
+        steps:
+          - uses: actions/checkout@v2
+          - name: Checkout submodules
+            run : git submodule update --init --recursive
+          - name: Run full test
+            run: ./full-test.sh
