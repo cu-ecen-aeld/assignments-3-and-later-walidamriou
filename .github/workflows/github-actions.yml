@@ -1,5 +1,3 @@
-# I have edited this after I  problem with unity
-
 name: assignment-test
 on:
   push:
@@ -15,12 +13,20 @@ jobs:
       - name: Checkout repository with submodules
         uses: actions/checkout@v2
         with:
-          submodules: recursive # Ensures all submodules are checked out
-          fetch-depth: 0        # Fetches the full history to resolve specific commits
+          submodules: recursive  # Ensures all submodules are checked out
+          fetch-depth: 0         # Fetches the full history to resolve specific commits
+          token: ${{ secrets.GITHUB_TOKEN }} # Use token for private submodules if needed
+          
+      - name: Cleanup submodule cache
+        run: |
+          git submodule deinit --all --force
+          rm -rf .git/modules
+      
       - name: Sync and initialize submodules
         run: |
-          git submodule sync                  # Synchronize URLs in .gitmodules with working tree
-          git submodule update --init --recursive
+          git submodule sync --recursive                  # Synchronize URLs in .gitmodules with working tree
+          git submodule update --init --recursive --force # Force reinitialization for accuracy
+      
       - name: Run unit test
         run: ./unit-test.sh
 
@@ -31,11 +37,19 @@ jobs:
       - name: Checkout repository with submodules
         uses: actions/checkout@v2
         with:
-          submodules: recursive # Ensures all submodules are checked out
-          fetch-depth: 0        # Fetches the full history to resolve specific commits
+          submodules: recursive  # Ensures all submodules are checked out
+          fetch-depth: 0         # Fetches the full history to resolve specific commits
+          token: ${{ secrets.GITHUB_TOKEN }} # Use token for private submodules if needed
+          
+      - name: Cleanup submodule cache
+        run: |
+          git submodule deinit --all --force
+          rm -rf .git/modules
+      
       - name: Sync and initialize submodules
         run: |
-          git submodule sync                  # Synchronize URLs in .gitmodules with working tree
-          git submodule update --init --recursive
+          git submodule sync --recursive                  # Synchronize URLs in .gitmodules with working tree
+          git submodule update --init --recursive --force # Force reinitialization for accuracy
+      
       - name: Run full test
         run: ./full-test.sh
